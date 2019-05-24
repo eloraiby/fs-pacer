@@ -111,7 +111,7 @@ The least effort for maximized value return would be a native module for network
 ## C and thy shall receive
 I didn't want to rewrite everything from scratch, and definitely, I didn't want to handle all edge cases for epoll. My choice was to use [libuv](https://libuv.org/). The architecture I opt for: use 16 cores out of 40 for networking, having 16 'uv_loop' each running on its own thread. Callbacks will be passed from F# to each 'uv_loop' instance. The event loop will call them after parsing the bid request in C11.
 
-After 900 lines of C11 code, the throughput ranged from 3.7M (using the Golang hammer) to 5.2M bid req/s (using another [Pony](https://www.ponylang.io/) hammer) without the need of thread pinning.
+After 900 lines of C11 code, the throughput ranged from 3.7M using the Golang hammer, and 5.2M bid req/s when using another [Pony](https://www.ponylang.io/) hammer. I didn't  need to reduce cache misses by pinning to specific cores.
 
 And the final flamegraph (in purple is the time to handle a req) showing that the time spent in F# is very minimal (CoreCLR, you'r good :)
 ![optim](flamegraph-optim.png)
