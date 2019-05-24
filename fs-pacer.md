@@ -11,7 +11,7 @@ I thought to rewrite the pacer in F#/CoreCLR since it offers stronger guarantees
 ***Warning:*** This is a war story...
 
 # 5M bid request/s, 2ms Max Response Time - The Road to Damascus
-In the worst case, we will have 5M bid requests a second hammering a single node, each has to be served in less than 2ms. Our node is a 40 (virtual) cores server with at least 2 Gigabit Ethernet cards running Linux. The system has to make fast decisions on whether it spends money or not to show an Ad. The bidding strategies have to be clear and hopefully bug free, otherwise a single node end up overspending and the company bankrupt.
+In the worst case, we will have 5M bid requests a second (over 500k packets) hammering a single node, each has to be served in less than 2ms. Our node is a 40 (virtual) cores server with at least 2 Gigabit Ethernet cards running Linux. The system has to make fast decisions on whether it spends money or not to show an Ad. The bidding strategies have to be clear and hopefully bug free, otherwise a single node end up overspending and the company bankrupt.
 
 ## Welcome to the Digital/Online Advertisement Business
 When you fire your browser or open a mobile app or even your smart TV, an Ad space will send a request to an online advertisement platform like Samsung, Google, Facebook... Most likely, the advertisement platform will act as an exchange (although not necessarily), it will run an auction by fanning out the request to other advertisers and ask them to bid. The one who bid the most wins the space and put his Ad. On a side note, at Samsung Ads/Adgear, we run a [second-price auction](https://en.wikipedia.org/wiki/Generalized_second-price_auction)). In this case, the winner pays the second highest price.
@@ -39,7 +39,7 @@ Most of other problems (including rendering) can be solved with careful benchmar
 ***Note*** One lockfree renderer I have seen was twice as slow than the original mutex-locked one. The reason was again poor architecture choice, and a sea of C++ boost templates.
 
 ## The irony of fate & state
-The original pacer would accept a batch of bid requests, run the strategies and reply in less than 2ms. It could answer up to a 1M bid req/s. However, all this was done on a single core. While budget changes and configuration reload (that could happen every 5 minutes) was run in parallel.
+The original pacer would accept a batch of bid requests, run the strategies and reply in less than 2ms. It could answer up to a 1M bid req/s (~100k packets). However, all this was done on a single core. While budget changes and configuration reload (that could happen every 5 minutes) was run in parallel.
 
 One of the strategies we were using was very susceptible to budget changes and their incoming order. With bit of bad luck and libck help, it would misbehave and causes overspending requiring manual intervention.
 
