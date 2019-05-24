@@ -39,15 +39,18 @@ Most of other problems (including rendering) can be solved with careful benchmar
 ***Note*** One lockfree renderer I have seen was twice as slow than the original mutex-locked one. The reason was again poor architecture choice, and a sea of C++ boost templates.
 
 ## The irony of fate & state
-The original pacer would accept a batch of bid requests, run the strategies and reply in less than 2ms. It could answer up to a 1M bid req/s (~100k packets). However, all this was done on a single core. While budget changes and configuration reload (that could happen every 5 minutes) was run in parallel.
+The original pacer would accept a batch of bid requests, run the strategies and reply in less than 2ms. It could answer up to a 1M bid req/s (~100k packets). However, all this was done on a single core. While budget changes and configuration reload (that could happen every 5 minutes) was run in parallel and changes the state while the bidder was acessing it.
 
 One of the strategies we were using was very susceptible to budget changes and their incoming order. With bit of bad luck and libck help, it would misbehave and causes overspending requiring manual intervention.
 
-One of the major improvement was phasing out that strategy and make all the strategies stateless or at least less susceptible to instruction ordering. That 2almost eliminated incidence rate.
+One of the major improvement was phasing out that strategy and make all the strategies stateless or at least less susceptible to instruction ordering. That almost eliminated incidence rate.
 
 With continuous strategy addition, each new one was taking a long time. Each time, special considerations and tests have to be made for the lock-free part. It was clear that the code has reached its end of life and a new rewrite is necessary. A rewrite in a higher level language will make us more productive.
 
-Needing stronger guaranties (type system and immutability by default) and a good support for pattern matching, my choices where Rust, Haskell, OCaml and F#/CoreClr (scala? That's another story for another day).
+I needed a language that can guarantee that the answer is always the same, given the same input. This is very helpful for unit testing and debugging. That puts me on the functional road. I also need a strong type system will force the use of the right unit of measure. For instance bidding with cents instead of Dollars. And finally immutability is very handy when it comes to concurrency: You make sure, no body is messing with the state while another is using it.
+
+Needing these stronger guarantees and a good support for pattern matching for heuristics, my choices where Rust, Haskell, OCaml and F#/CoreClr (scala? That's another story for another day).
+
 
 ## Fire the minions
 My first attempt was to try rust for the rewrite. Rust is a good system language with the strong guarantees. After few months it became clear: The ecosystem is very far from being stable and usable. I love the language but I strongly dislike the ecosystem and the geological compilation time.
@@ -120,6 +123,8 @@ And the final flamegraph (in purple is the time to handle a req) showing that th
 
 ## Conclusion
 CoreFX async sockets under linux (with coreclr 2.2.5) are not on par with other frameworks, and definitely don't match MS Windows performance. While Golang achieved between 2.8M & 3.2M bid req/s out of the box, CoreFX was busy waiting...
+
+So why not Golang? It's a good candidate, but shared states and race conditions are very tricky to deal with, and require a bit of Golang debugging experience. We might re-evaluate the Golang route if we can't scale more in the future and are sure we have the experience to debug shared mutable states in Golang.
 
 Note though, this is an atypical application, and for most **typical** use cases, I would still recommend CoreFX sockets.
 
